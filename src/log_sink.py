@@ -23,8 +23,9 @@ import datetime
 SOCKET_PATH = "/var/run/sidecar-logging.sock"
 
 # These values may be set by k8s
-POD_NAME = os.getenv("POD_NAME", "unknown-pod")
+POD_NAME      = os.getenv("POD_NAME", "unknown-pod")
 POD_NAMESPACE = os.getenv("POD_NAMESPACE", "default")
+NODE_NAME     = os.getenv("NODE_NAME", "unknown-node")
 
 def start_json_logging_sink():
     if os.path.exists(SOCKET_PATH):
@@ -35,7 +36,6 @@ def start_json_logging_sink():
     server.bind(SOCKET_PATH)
     os.chmod(SOCKET_PATH, 0o666)  # set permission so that the library in the
     server.listen(10)             # main app container may write to the socket
-
     buffer = {}
 
     # say hello
@@ -70,6 +70,7 @@ def start_json_logging_sink():
                             "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
                             "pod_name":  POD_NAME,
                             "namespace": POD_NAMESPACE,
+                            "nodename":  NODE_NAME,
                             "message":   line.strip(),
                             "stream":    "stdout",
                             "source":    "interceptor-hook"
@@ -89,7 +90,7 @@ def start_json_logging_sink():
                 #-- end(while)
 
             except Exception as e:
-                pass 
+                pass
             finally:
                 if conn in buffer: del buffer[conn]
                 conn.close()

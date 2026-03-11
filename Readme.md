@@ -92,6 +92,21 @@ Removing network liblogtap_default
 $ 
 ```
 
+## Kubernetes deployment
+
+Use the file _deplyoment.yaml_ for a show case which demonstrates the capabilities
+of liblogtap in a kubernetes environment. The demo deployment shows
+
+* how to use an init container injecting liblogtap.so into an application container **without modifying it**,
+* where the library intercepts the applications output and
+* reroutes it to a sidecar which is reading and processing the logs.
+
+An easy and quick way to try it is to deploy it on an online k8s
+playgound like killercoda.com.
+
+For more information see the documentation inside the file deployment.yaml.
+
+
 ## Controlling the library with environment variables.
 
 The behaviour of the liblogtap library can be controlled through a couple of
