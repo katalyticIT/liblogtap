@@ -1,3 +1,9 @@
+#
+#---- Dockerfile to build the liblogtap demo image ----
+#
+# This file is part of https://github.com/katalyticIT/liblogtap and is
+# licensed under GPL 3.0. See LICENSE file for details.
+#
 
 # --- Stage 1: Compiling the C library ---
 FROM gcc:latest AS builder

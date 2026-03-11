@@ -27,6 +27,78 @@ This library puts you back in control, allowing you to decide for yourself
 how and where you want to use the logs, regardless of whether it's a
 self-written application or a container with third-party software.
 
+## Building library and docker image
 
-(to be continued)
+You may use the Makefile and just run _make_ to create the library, or compile
+it manually with the following command:
+```
+gcc -fPIC -shared -o lib/liblogtap.so src/liblogtap.c -ldl -lpthread
+```
+
+To build the demo image containing the python scripts and the library
+simply run:
+```
+docker build -t katalytic/liblogtap-demo:1.0 .
+```
+
+
+## docker-compose
+
+Use the file docker-compose.yaml for running a demo showing how liblogtap works.
+
+The image used for both containers contains the following components:
+* clock.py - simulating the main app, creating simple log output,
+* liblogtap.so - the library that taps into stdout and redirects it,
+* log_sink.py - reading the redirected log in the sidecar.
+
+The trick is to *preload* liblogtap.so in the main container, using
+the environment variable LD_PRELOAD, before the script "clock.py"
+starts.
+ 
+The library intercepts write() and writev() and writes copies of the
+intercepted data to a Unix socket in a shared volume. This keeps the
+communication in memory and without the overhead of e.g. a network
+socket.
+
+The sidecar container on the other side runs the script "log_sink.py"
+which reads the tapped logs and enriches them before writing them as
+single line JSON to stdout.
+
+The following lines show a example output:
+
+```
+$ docker-compose  up -d
+Creating network "liblogtap_default" with the default driver
+Creating sidecar ... done
+Creating main-app ... done
+$ docker logs main-app 
+[liblogtap DEBUG PID:1] liblogtap active (debug mode) - injected PYTHONUNBUFFERED=1
+[liblogtap DEBUG PID:1] Successfully connected to target socket.
+13:47:35
+13:47:37
+13:47:39
+$ docker logs  sidecar 
+JSON Aggregator active. Metadata: docker-compose/sidecar
+{"timestamp": "2026-03-11T13:47:35.097063Z", "pod_name": "sidecar", "namespace": "docker-compose", "message": "13:47:35", "stream": "stdout", "source": "interceptor-hook"}
+{"timestamp": "2026-03-11T13:47:37.097196Z", "pod_name": "sidecar", "namespace": "docker-compose", "message": "13:47:37", "stream": "stdout", "source": "interceptor-hook"}
+{"timestamp": "2026-03-11T13:47:39.097485Z", "pod_name": "sidecar", "namespace": "docker-compose", "message": "13:47:39", "stream": "stdout", "source": "interceptor-hook"}
+$ docker-compose down
+Stopping main-app ... done
+Stopping sidecar  ... done
+Removing main-app ... done
+Removing sidecar  ... done
+Removing network liblogtap_default
+$ 
+```
+
+## Controlling the library with environment variables.
+
+The behaviour of the liblogtap library canbe controlled through a couple of
+environment variables:
+
+* LLT_TAP_INTO : Determines which log stream to tap into; 0=none, 1=stdout, 2=stderr, 3=both. Default=0.
+* LLT_SUPPRESS_STDOUT : Set to "true" to suppress the original logging on the main process. Default=false.
+* LLT_DEBUG_MODE : Set to "true" if you want output of the library itself. Default=false.
+* LLT_TARGET_RECONNECT : Number of seconds to wait until trying to reconnect to the socket, e.g. if the sidecar gets restart and the socket is temporarily unavailable. This is to ensure the main app won't get stuck waiting on the logging. Default=30.
+* LLT_TARGET : "file:/path/to/file" or "socket:/path/to/socket". Default=file:/tmp/liblogtap.log.
 

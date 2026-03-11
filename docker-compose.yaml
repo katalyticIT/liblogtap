@@ -7,7 +7,7 @@
 # - log_sink.py - reading the redirected log in the sidecar.
 #
 # The trick is to *preload* liblogtap.so in the main container, using
-# teh environment variable LD_PRELOAD, before the script "clock.py"
+# the environment variable LD_PRELOAD, before the script "clock.py"
 # starts.
 # 
 # The library intercepts write() and writev() and writes copies of the
@@ -31,7 +31,7 @@ services:
   clock:
     container_name: main-app
     image: katalytic/liblogtap-demo:1.0
-    command: python3 clock.py
+    command: python3 clock.py   # just a clock ticking and writing to stdout
     volumes:
       - shared_data:/var/run    # we'll open the socket here
     restart: unless-stopped
@@ -47,12 +47,12 @@ services:
   #-- container 2: the sidecar
   sidecar:
     container_name: sidecar
-    image: katalytic/liblogtap-demo:1.0
+    image: katalytic/liblogtap-demo:1.0  # default command is log_sink.py
     volumes:
-      - shared_data:/var/run    # we'll open the socket here
+      - shared_data:/var/run             # we'll open the socket here
     environment:
-      - POD_NAME=sidecar
-      - POD_NAMESPACE=docker-compose
+      - POD_NAME=sidecar                 # just some metadata to
+      - POD_NAMESPACE=docker-compose     # enrich the log output
     restart: unless-stopped
 
 #-- persistent storage and/or Unix socket

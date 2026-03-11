@@ -2,9 +2,13 @@
 #
 # ** clock.py **
 #
-# Simple app to produce log output inside the
-# liblogtap demo deployment; just prints the
-# time in an endless loop (default: every 2s).
+# Simple app to produce log output inside the liblogtap demo deployment;
+# it just prints the time in an endless loop (default: every 2s).
+#
+#----
+#
+# This file is part of https://github.com/katalyticIT/liblogtap and is
+# licensed under GPL 3.0. See LICENSE file for details.
 #
 
 #-- config
