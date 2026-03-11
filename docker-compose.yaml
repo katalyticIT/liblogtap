@@ -1,0 +1,61 @@
+#
+# docker-compose.yaml for running a demo showing how liblogtap works
+#
+# The image used for both containers contains the following components:
+# - clock.py - simulating the main app, creating simple log output,
+# - liblogtap.so - the library that taps into stdout and redirects it,
+# - log_sink.py - reading the redirected log in the sidecar.
+#
+# The trick is to *preload* liblogtap.so in the main container, using
+# teh environment variable LD_PRELOAD, before the script "clock.py"
+# starts.
+# 
+# The library intercepts write() and writev() and writes copies of the
+# intercepted data to a Unix socket in a shared volume. This keeps the
+# communication in memory and without the overhead of e.g. a network
+# socket.
+#
+# The sidecar container on the other side runs the script "log_sink.py"
+# which reads the tapped logs and enriches them before writing them as
+# single line JSON to stdout.
+#
+#----
+#
+# This file is part of https://github.com/katalyticIT/liblogtap and is
+# licensed under GPL 3.0. See LICENSE file for details.
+#
+
+version: '3.0'
+services:
+  #-- container 1: the ticking clock ----
+  clock:
+    container_name: main-app
+    image: katalytic/liblogtap-demo:1.0
+    command: python3 clock.py
+    volumes:
+      - shared_data:/var/run    # we'll open the socket here
+    restart: unless-stopped
+    environment:
+      - LD_PRELOAD=/usr/local/lib/liblogtap.so            # path to library
+      - LLT_TAP_INTO=1                                    # 1=stdout, 2=stderr, 3=both
+      - LLT_TARGET=socket:/var/run/sidecar-logging.sock   # path to socket
+      - LLT_DEBUG_MODE=true                               # enable debug mode
+      - LLT_SUPPRESS_STDOUT=false                         # keep original log on main container
+    depends_on:
+    - sidecar
+
+  #-- container 2: the sidecar
+  sidecar:
+    container_name: sidecar
+    image: katalytic/liblogtap-demo:1.0
+    volumes:
+      - shared_data:/var/run    # we'll open the socket here
+    environment:
+      - POD_NAME=sidecar
+      - POD_NAMESPACE=docker-compose
+    restart: unless-stopped
+
+#-- persistent storage and/or Unix socket
+volumes:
+  shared_data:
+
