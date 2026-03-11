@@ -6,8 +6,8 @@ logs of containers and to analyze, transform or redirect the output.
 
 ## Introduction
 The liblogtap library gets (pre)loaded using the environment variable
-LD_PRELOAD to get layered between the app and the Linux kernel. There
-it overwrites the central funtions write() and writev(), tapping into
+*LD_PRELOAD* to get inserted _between_ the app and the Linux kernel. There
+it overwrites the central funtions _write()_ and _writev()_, tapping into
 the stdout and stderr streams and writing copies of the data into a
 file or a socket. If the latter resides on a shared volume, another
 process may read from file or socket and process the data according
@@ -20,8 +20,9 @@ stack or something similar, but where that doesn't fit your needs,
 or access or changes needed are way to bureaucratic.
 
 Another use case would be to provide central logging to an existing
-sink like elastic, flume or hbase, using a customized image with
-fluentd or similar to enrich and gather the tapped data.
+sink like elastic, flume or hbase, using a sidecar running a customized
+image with fluentd or similar to gather and maybe enrich the tapped data
+before sending it to a central sink.
 
 This library puts you back in control, allowing you to decide for yourself
 how and where you want to use the logs, regardless of whether it's a
@@ -32,7 +33,7 @@ self-written application or a container with third-party software.
 You may use the Makefile and just run _make_ to create the library, or compile
 it manually with the following command:
 ```
-gcc -fPIC -shared -o lib/liblogtap.so src/liblogtap.c -ldl -lpthread
+gcc -fPIC -shared -o local/liblogtap.so src/liblogtap.c -ldl -lpthread
 ```
 
 To build the demo image containing the python scripts and the library
@@ -46,16 +47,16 @@ docker build -t katalytic/liblogtap-demo:1.0 .
 
 Use the file docker-compose.yaml for running a demo showing how liblogtap works.
 
-The image used for both containers contains the following components:
+The image gets used for both containers containing the following active components:
 * clock.py - simulating the main app, creating simple log output,
 * liblogtap.so - the library that taps into stdout and redirects it,
 * log_sink.py - reading the redirected log in the sidecar.
 
 The trick is to *preload* liblogtap.so in the main container, using
 the environment variable LD_PRELOAD, before the script "clock.py"
-starts.
- 
-The library intercepts write() and writev() and writes copies of the
+even starts.
+
+The library intercepts the system calls _write()_ and _writev()_ and writes copies of the
 intercepted data to a Unix socket in a shared volume. This keeps the
 communication in memory and without the overhead of e.g. a network
 socket.
@@ -93,7 +94,7 @@ $
 
 ## Controlling the library with environment variables.
 
-The behaviour of the liblogtap library canbe controlled through a couple of
+The behaviour of the liblogtap library can be controlled through a couple of
 environment variables:
 
 * LLT_TAP_INTO : Determines which log stream to tap into; 0=none, 1=stdout, 2=stderr, 3=both. Default=0.
@@ -101,4 +102,10 @@ environment variables:
 * LLT_DEBUG_MODE : Set to "true" if you want output of the library itself. Default=false.
 * LLT_TARGET_RECONNECT : Number of seconds to wait until trying to reconnect to the socket, e.g. if the sidecar gets restart and the socket is temporarily unavailable. This is to ensure the main app won't get stuck waiting on the logging. Default=30.
 * LLT_TARGET : "file:/path/to/file" or "socket:/path/to/socket". Default=file:/tmp/liblogtap.log.
+
+## AI notice
+
+Parts of the library source code and the log_sink python script were created using AI (Google Gemini).
+
+
 
