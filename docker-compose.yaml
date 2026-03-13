@@ -51,8 +51,10 @@ services:
     volumes:
       - shared_data:/var/run             # we'll open the socket here
     environment:
-      - POD_NAME=sidecar                 # just some metadata to
+      - POD_NAME=sidecar                 # adding some metadata to
       - POD_NAMESPACE=docker-compose     # enrich the log output
+      - NODE_NAME=${HOST}
+      - SINK_SOCKET_PATH=/var/run/sidecar-logging.sock  # path to the socket
     restart: unless-stopped
 
 #-- persistent storage and/or Unix socket

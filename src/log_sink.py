@@ -19,13 +19,12 @@ import os
 import json
 import datetime
 
-# Path to socket in shared volume
-SOCKET_PATH = "/var/run/sidecar-logging.sock"
-
-# These values may be set by k8s
+# Get metadata and configuration from environment variables
 POD_NAME      = os.getenv("POD_NAME", "unknown-pod")
 POD_NAMESPACE = os.getenv("POD_NAMESPACE", "default")
 NODE_NAME     = os.getenv("NODE_NAME", "unknown-node")
+SOCKET_PATH   = os.getenv("SINK_SOCKET_PATH", "/var/run/sidecar-logging.sock")
+
 
 def start_json_logging_sink():
     if os.path.exists(SOCKET_PATH):
@@ -39,7 +38,7 @@ def start_json_logging_sink():
     buffer = {}
 
     # say hello
-    print(f"JSON Aggregator active. Metadata: {POD_NAMESPACE}/{POD_NAME}")
+    print(f"JSON Aggregator active. Metadata: {NODE_NAME}:{POD_NAMESPACE}/{POD_NAME}")
 
     try:
         while True:
