@@ -45,12 +45,13 @@ static write_func_t real_write = NULL;
 typedef ssize_t (*writev_func_t)(int, const struct iovec *, int);
 static writev_func_t real_writev = NULL;
 
-// configuration
+// configuration; initialize variables and set default values
 static int  tap_stdout = 0;
 static int  tap_stderr = 0;
 static bool debug_mode = false;
 static bool suppress_stdout    = false;
 static int  reconnect_interval = 30;
+static int  firstConnect_interval = 1;
 
 static char target_type[16]  = "file";
 static char target_path[256] = "/tmp/liblogtap.log";
@@ -124,8 +125,8 @@ static void try_connect() {
     time_t now = time(NULL);
     if (now < next_connect_time) return;
 
-    // Check for time to wait: 5s on startup race condition, else $LLT_TARGET_RECONNECT
-    int wait_time = initial_connection_established ? reconnect_interval : 5;
+    // Check for time to wait: $firstConnect_intervals on startup race condition, else $LLT_TARGET_RECONNECT
+    int wait_time = initial_connection_established ? reconnect_interval : firstConnect_interval;
 
     // if target 'file' is defined, open the file (default=/tmp/liblogtap.log; see above)
     if (strcmp(target_type, "file") == 0) {
@@ -177,7 +178,7 @@ ssize_t write(int fd, const void *buf, size_t count) {
         if (pthread_mutex_trylock(&lock) == 0) {
             if (target_fd == -1) try_connect();
 
-            # if file/socket is open, write data there
+            // if file/socket is open, write data there
             if (target_fd != -1) {
                 ssize_t ret = real_write(target_fd, buf, count);
                 if (ret < 0 && errno != EAGAIN && errno != EWOULDBLOCK) { // whoops - somtehing went wrong ...
@@ -206,7 +207,7 @@ ssize_t writev(int fd, const struct iovec *iov, int iovcnt) {
         if (pthread_mutex_trylock(&lock) == 0) {
             if (target_fd == -1) try_connect();
 
-            # if file/socket is open, write data there
+            // if file/socket is open, write data there
             if (target_fd != -1) {
                 ssize_t ret = real_writev(target_fd, iov, iovcnt);
                 if (ret < 0 && errno != EAGAIN && errno != EWOULDBLOCK) { // whoops - somtehing went wrong ...

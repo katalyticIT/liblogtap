@@ -124,6 +124,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: spec.nodeName
+        - name: SINK_SOCKET_PATH
+          value: /var/run/sidecar-logging.sock
 
         volumeMounts:
         - name: shared-data
