@@ -10,9 +10,9 @@
  * container.
  *
  * To intercept stdout and/or stderr of third party images or
- * custom images where you cannot, don't want to or are not allowed
+ * custom images where e.g. you cannot, don't want to or are not allowed
  * to modify the image, you may use an init container to inject
- * this library. If you need halp doing so, feel free to ask the
+ * this library. If you need help doing so, feel free to ask the
  * maintainer of this repository.
  *
  * ----
@@ -46,14 +46,15 @@ typedef ssize_t (*writev_func_t)(int, const struct iovec *, int);
 static writev_func_t real_writev = NULL;
 
 // configuration; initialize variables and set default values
-static int  tap_stdout = 0;
-static int  tap_stderr = 0;
-static bool debug_mode = false;
-static bool suppress_stdout    = false;
-static int  reconnect_interval = 30;
-static int  firstConnect_interval = 1;
+static int  tap_stdout = 0;                 // intercept stdout; def.=0 (don't)
+static int  tap_stderr = 0;                 // intercept stderr; def.=0 (don't)
+static bool debug_mode = false;             // library writes own output; NOT RECOMMENDED IN PRODUCTION ENVIRONMENT
+static bool suppress_stdout       = false;  // don't write data to app containers stdout
+static int  reconnect_interval    = 30;     // seconds to wait before trying to reconnect to socket
+static int  firstConnect_interval = 1;      // seconds to wait before retrying to reconnect *on startup* (to address container start race condition)
 
-static char target_type[16]  = "file";
+
+static char target_type[16]  = "file";      // default for bypass/target sink
 static char target_path[256] = "/tmp/liblogtap.log";
 
 // runtime status
@@ -64,7 +65,7 @@ static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 // helper function for internal debug output;
 // DO NOT USE IN PRODUCTION ENVIRONMENT!!!
-// (Means don't set LLT_DEBUG_MODE=true)
+// (Means don't set LLT_DEBUG_MODE=true there.)
 static void debug_log(const char *msg) {
     if (debug_mode && !suppress_stdout && real_write) {
         char buf[512];

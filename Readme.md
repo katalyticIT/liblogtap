@@ -17,7 +17,7 @@ to your needs.
 A use case for this library may be the situation where your company
 _is_ gathering all logs centrally using a common produkt like the ELK
 stack or something similar, but where that doesn't fit your needs,
-or access or changes needed are way to bureaucratic.
+or access to that facility or changes needed are way to bureaucratic.
 
 Another use case would be to provide central logging to an existing
 sink like elastic, flume or hbase, using a sidecar running a customized
@@ -65,7 +65,7 @@ The sidecar container on the other side runs the script "log_sink.py"
 which reads the tapped logs and enriches them before writing them as
 single line JSON to stdout.
 
-The following lines show a example output:
+The following lines show an example output:
 
 ```
 $ docker-compose  up -d
@@ -101,7 +101,7 @@ of liblogtap in a kubernetes environment. The demo deployment shows
 * where the library intercepts the applications output and
 * reroutes it to a sidecar which is reading and processing the logs.
 
-An easy and quick way to try it is to deploy it on an online k8s
+An quick and easy way to try it is by deploying it on an online k8s
 playgound like killercoda.com.
 
 For more information see the documentation inside the file deployment.yaml.
@@ -112,11 +112,13 @@ For more information see the documentation inside the file deployment.yaml.
 The behaviour of the liblogtap library can be controlled through a couple of
 environment variables:
 
-* LLT_TAP_INTO : Determines which log stream to tap into; 0=none, 1=stdout, 2=stderr, 3=both. Default=0.
-* LLT_SUPPRESS_STDOUT : Set to "true" to suppress the original logging on the main process. Default=false.
-* LLT_DEBUG_MODE : Set to "true" if you want output of the library itself. Default=false.
-* LLT_TARGET_RECONNECT : Number of seconds to wait until trying to reconnect to the socket, e.g. if the sidecar gets restart and the socket is temporarily unavailable. This is to ensure the main app won't get stuck waiting on the logging. Default=30.
-* LLT_TARGET : "file:/path/to/file" or "socket:/path/to/socket". Default=file:/tmp/liblogtap.log.
+| environment variable | What's it for? |
+| -------------------- | -------------- |
+| LLT_TAP_INTO         | Determines which log stream to tap into; 0=none, 1=stdout, 2=stderr, 3=both. Default=0. |
+| LLT_SUPPRESS_STDOUT  | Set to "true" to suppress the original logging on the main process. Default=false. |
+| LLT_DEBUG_MODE       | Set to "true" if you want output of the library itself. Default=false. |
+| LLT_TARGET_RECONNECT | Number of seconds to wait until trying to reconnect to the socket, e.g. if the sidecar gets restart and the socket is temporarily unavailable. This is to ensure the main app won't get stuck waiting on the logging. Default=30.|
+| LLT_TARGET           | "file:/path/to/file" or "socket:/path/to/socket". Default=file:/tmp/liblogtap.log. |
 
 ## AI notice
 
