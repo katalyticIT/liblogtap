@@ -3,6 +3,8 @@
 
 This project provides a Linux library which may be used to tap into
 logs of containers and to analyze, transform or redirect the output.
+It's capable of intercepting stdout, stderr and up to one custom
+logfile.
 
 ## Introduction
 The liblogtap library gets (pre)loaded using the environment variable
@@ -12,6 +14,10 @@ the stdout and stderr streams and writing copies of the data into a
 file or a socket. If the latter resides on a shared volume, another
 process may read from file or socket and process the data according
 to your needs.
+
+Functions to open files are intercepted, too, according to the need
+to find the filehandle of the custom logfile to tap into, if this
+option is set.
 
 ## Use cases
 A use case for this library may be the situation where your company
@@ -24,7 +30,16 @@ sink like elastic, flume or hbase, using a sidecar running a customized
 image with fluentd or similar to gather and maybe enrich the tapped data
 before sending it to a central sink.
 
-This library puts you back in control, allowing you to decide for yourself
+Modern apps should follow the 12 factors pattern, once they're packaged
+into a docker image, but there's still some around which don't, writing
+their logs into the containers filesystem (or an attached volume). To
+fix this, liblogtap is able to intercept the data of a given logfile
+and instead write it into a socket, where the sidecar can pick it up,
+forwarding it into the place you want. An environment variable may be
+set to suppress the writing to the original logfile, reducing disk i/o
+and keeping the containers filesystem clean.
+
+In summary, this library puts you back in control, allowing you to decide
 how and where you want to use the logs, regardless of whether it's a
 self-written application or a container with third-party software.
 
@@ -112,13 +127,16 @@ For more information see the documentation inside the file deployment.yaml.
 The behaviour of the liblogtap library can be controlled through a couple of
 environment variables:
 
-| environment variable | What's it for? |
-| -------------------- | -------------- |
-| LLT_TAP_INTO         | Determines which log stream to tap into; 0=none, 1=stdout, 2=stderr, 3=both. Default=0. |
-| LLT_SUPPRESS_STDOUT  | Set to "true" to suppress the original logging on the main process. Default=false. |
-| LLT_DEBUG_MODE       | Set to "true" if you want output of the library itself. Default=false. |
-| LLT_TARGET_RECONNECT | Number of seconds to wait until trying to reconnect to the socket, e.g. if the sidecar gets restart and the socket is temporarily unavailable. This is to ensure the main app won't get stuck waiting on the logging. Default=30.|
-| LLT_TARGET           | "file:/path/to/file" or "socket:/path/to/socket". Default=file:/tmp/liblogtap.log. |
+| environment variable  | What's it for? |
+| --------------------  | -------------- |
+| LLT_PASSIV_ON_START   | Time in ms which the library stays passive on startup. This is to address race conditions and dead loops while e.g. the dynamic linker still loads libraries. |
+| LLT_TAP_INTO          | Determines which log stream to tap into; 0=none, 1=stdout, 2=stderr, 3=both. Default=0. |
+| LLT_SUPPRESS_STDOUT   | Set to "true" to suppress the original logging on the main process. Default=false. |
+| LLT_DEBUG_MODE        | Set to "true" if you want output of the library itself. Default=false. |
+| LLT_TARGET_RECONNECT  | Number of seconds to wait until trying to reconnect to the socket, e.g. if the sidecar gets restart and the socket is temporarily unavailable. This is to ensure the main app won't get stuck waiting on the logging. Default=30.|
+| LLT_TARGET            | "file:/path/to/file" or "socket:/path/to/socket". Default=file:/tmp/liblogtap.log. |
+| LLT_TAP_FILE          | Custom file inside the container to tap into, e.g. something like /var/log/nginx.log. There's still containers around which don't follow the 12 factors. Default=none.|
+| LLT_SUPPRESS_TAP_FILE | Tap logfile and write to own file/socket, but don't write to intended log. Useful to reduce disk i/o and keep disk space footprint of the container small. Default=false. |
 
 ## AI notice
 
