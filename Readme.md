@@ -7,52 +7,61 @@ It's capable of intercepting stdout, stderr and up to one custom
 logfile.
 
 ## Introduction
-The liblogtap library gets (pre)loaded using the environment variable
-*LD_PRELOAD* to get inserted _between_ the app and the Linux kernel. There
-it overwrites the central funtions _write()_ and _writev()_, tapping into
-the stdout and stderr streams and writing copies of the data into a
-file or a socket. If the latter resides on a shared volume, another
-process may read from file or socket and process the data according
-to your needs.
 
-Functions to open files are intercepted, too, according to the need
-to find the filehandle of the custom logfile to tap into, if this
-option is set.
+The liblogtap library gets (pre)loaded using the environment variable
+*LD_PRELOAD* to get inserted _between_ the app and the Linux kernel.
+There it overwrites central funtions like _write()_ and _writev()_,
+tapping into the stdout/stderr streams or even a custom logfile and
+writing copies of the data into a configured file or a socket.
+
+If the latter resides on a shared volume, another process may read
+from file or socket and process the data according to your needs,
+e.g. enhance or filter it and/or forward it to a central sink.
+
+![One of the 12 factors: Logs should go to stdout.](img/12factors_dodekaeder_datacenter.png)
 
 ## Use cases
-A use case for this library may be the situation where your company
-_is_ gathering all logs centrally using a common produkt like the ELK
-stack or something similar, but where that doesn't fit your needs,
-or access to that facility or changes needed are way to bureaucratic.
-
-Another use case would be to provide central logging to an existing
-sink like elastic, flume or hbase, using a sidecar running a customized
-image with fluentd or similar to gather and maybe enrich the tapped data
-before sending it to a central sink.
 
 Modern apps should follow the 12 factors pattern, once they're packaged
 into a docker image, but there's still some around which don't, writing
-their logs into the containers filesystem (or an attached volume). To
-fix this, liblogtap is able to intercept the data of a given logfile
+their logs into the containers filesystem (or an attached volume).
+Often it's a legacy application which nobody dares to touch or it's
+a third party tool of which the image may not or cannot be modified.
+
+To fix this, liblogtap is able to intercept the data of a given logfile
 and instead write it into a socket, where the sidecar can pick it up,
-forwarding it into the place you want. An environment variable may be
-set to suppress the writing to the original logfile, reducing disk i/o
-and keeping the containers filesystem clean.
+forwarding it *into the place you want*. An environment variable may be
+set to suppress the writing to the original logfile, *reducing disk i/o*
+and *keeping the containers filesystem clean*.
+
+Best thing is: *no modification of app, code or image is necessary!*
+
+Another use case for this library could be the situation where your
+company *is* gathering all logs centrally using a common produkt like
+the ELK stack or something similar, but where that doesn't fit your
+needs, or getting access to or changes needed are way to bureaucratic.
+
+Based on the liblogtap pattern, you could build your custom log
+gathering client to route the logs to a central sink like elastic,
+flume or hbase, using a sidecar running a customized image with
+fluentd or similar.
 
 In summary, this library puts you back in control, allowing you to decide
-how and where you want to use the logs, regardless of whether it's a
+*how and where* you want to use the logs, regardless of whether it's a
 self-written application or a container with third-party software.
 
 ## Building library and docker image
 
-You may use the Makefile and just run _make_ to create the library, or compile
+You may use the Makefile and just run _make clean && make_ to create the library, or compile
 it manually with the following command:
+
 ```
-gcc -fPIC -shared -o local/liblogtap.so src/liblogtap.c -ldl -lpthread
+gcc -Wall -Wextra -fPIC -o local/liblogtap.so  -shared -ldl -lpthread
 ```
 
 To build the demo image containing the python scripts and the library
 simply run:
+
 ```
 docker build -t katalytic/liblogtap-demo:1.0 .
 ```
