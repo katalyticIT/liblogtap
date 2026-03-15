@@ -15,7 +15,7 @@ all: $(TARGET)
 
 # rule for building the library
 $(TARGET): $(SRC)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	echo "-- $(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) --"
 	@echo "Build successfully: $(TARGET)"
 
 # clean up old build artefacts

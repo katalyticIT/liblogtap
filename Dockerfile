@@ -10,7 +10,7 @@ FROM gcc:latest AS builder
 
 WORKDIR /build
 COPY    src/liblogtap.c  .
-RUN     gcc -fPIC -shared -o liblogtap.so liblogtap.c -ldl -lpthread
+RUN     gcc -Wall -Wextra -fPIC -o liblogtap.so liblogtap.c -shared -ldl -lpthread
 
 
 # --- Stage 2: Building the final sidecar image ---
