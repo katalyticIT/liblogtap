@@ -1,3 +1,27 @@
+/*
+ * **** liblogtap.c - source code for liblogtap.so ****
+ *
+ * This library is designed to be preloaded using the LD_PRELOAD
+ * Linux environment variable to intercept stdout and stderr on
+ * the communication between the targeted app and the kernel.
+ *
+ * That way it's possible to intercept log output of apps in
+ * docker or kubernetes containers and to process it in a sidecar
+ * container.
+ *
+ * To intercept stdout and/or stderr of third party images or
+ * custom images where e.g. you cannot, don't want to or are not allowed
+ * to modify the image, you may use an init container to inject
+ * this library. If you need help doing so, feel free to ask the
+ * maintainer of this repository.
+ *
+ * ----
+ *
+ * This file is part of https://github.com/katalyticIT/liblogtap and is
+ * licensed under GPL 3.0. See LICENSE file for details.
+ *
+ */
+
 #define _GNU_SOURCE
 
 #include <stdio.h>
@@ -52,6 +76,7 @@ static char tap_file_path[512] = "";
 static bool suppress_tap_file = false;
 static bool debug_mode = false;
 static int reconnect_interval = 30;
+static int initial_connect_interval = 5; // NEW: Configurable initial connection wait time
 
 static char target_type[16] = "file";
 static char target_path[256] = "/tmp/liblogtap.log";
@@ -147,6 +172,9 @@ __attribute__((constructor)) static void bootstrap() {
     
     // LLT_TARGET_RECONNECT: Interval in seconds before attempting to reconnect to the target socket/file after a failure.
     if (getenv("LLT_TARGET_RECONNECT")) reconnect_interval = atoi(getenv("LLT_TARGET_RECONNECT"));
+
+    // LLT_TARGET_1STCONNECT: Interval in seconds to wait before the very first connection attempt to the target. Default is 5.
+    if (getenv("LLT_TARGET_1STCONNECT")) initial_connect_interval = atoi(getenv("LLT_TARGET_1STCONNECT"));
     
     // LLT_TARGET: Defines the destination for the intercepted logs (format: "socket:/path" or "file:/path").
     const char *env_target = getenv("LLT_TARGET");
@@ -222,7 +250,8 @@ static void try_connect() {
     time_t now = time(NULL);
     if (now < next_connect_time) return;
 
-    int wait_time = initial_connection_established ? reconnect_interval : 5;
+    // Use the newly configured initial_connect_interval instead of a hardcoded 5
+    int wait_time = initial_connection_established ? reconnect_interval : initial_connect_interval;
 
     if (strcmp(target_type, "file") == 0) {
         target_fd = syscall(SYS_openat, AT_FDCWD, target_path, O_WRONLY | O_CREAT | O_APPEND | O_NONBLOCK, 0666);

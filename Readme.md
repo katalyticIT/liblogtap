@@ -142,6 +142,7 @@ environment variables:
 | LLT_TAP_INTO          | Determines which log stream to tap into; 0=none, 1=stdout, 2=stderr, 3=both. Default=0. |
 | LLT_SUPPRESS_STDOUT   | Set to "true" to suppress the original logging on the main process. Default=false. |
 | LLT_DEBUG_MODE        | Set to "true" if you want output of the library itself. Default=false. |
+| LLT_TARGET_1STCONNECT | Interval in seconds to wait before the very first connection attempt to the target. This gives the sidecar time to start up and create the socket. Default is 5.|
 | LLT_TARGET_RECONNECT  | Number of seconds to wait until trying to reconnect to the socket, e.g. if the sidecar gets restart and the socket is temporarily unavailable. This is to ensure the main app won't get stuck waiting on the logging. Default=30.|
 | LLT_TARGET            | "file:/path/to/file" or "socket:/path/to/socket". Default=file:/tmp/liblogtap.log. |
 | LLT_TAP_FILE          | Custom file inside the container to tap into, e.g. something like /var/log/nginx.log. There's still containers around which don't follow the 12 factors. Default=none.|
