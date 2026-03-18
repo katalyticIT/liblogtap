@@ -1,0 +1,140 @@
+#
+# ** deployment.yaml for running an *extended demo* showing how liblogtap works **
+#
+# Executive summary: this demo deployment shows
+# - how to use an init container injecting liblogtap.so into an
+#   application container **without modifying it**,
+# - where the library intercepts the applications output and
+# - reroutes it to a sidecar which is reading the logs and
+# - forwards it to a fluent daemonset as a JSON record.
+#
+#
+# An easy and quick way to try it is to deploy it on an online k8s
+# playgound like killercoda.com .
+#
+#
+# == What's in it ? ==
+#
+# The basic liblogtap-demo image is used both the init and app
+# container. It contains the following components:
+# - clock.py     - tick tock, the ticking clock, simulating the main
+#                  app, creating simple log output,
+# - liblogtap.so - the library that gets injected by the init container
+#                  and whichtaps into stdout and redirects it,
+#
+# The sidecar uses an own image. It contains a go binary which creates
+# the socket in the shared volume and reads from it. Each line is
+# enriched with metadata and then sent as JSON record tp a) stdout,
+# b) a fluent tcp sink or c) both.
+#
+# == How dows it work ? ==
+#
+# The trick is to *preload* liblogtap.so in the main container, using
+# the environment variable LD_PRELOAD, before the script "clock.py"
+# starts.
+# 
+# For not having to modify the application container, the library gets
+# "injected" via a shared volume to which the init container writes
+# the library and from which the main container reads it.
+# 
+# The library intercepts write() and writev() and sends copies of the
+# intercepted data to a Unix socket in a shared volume (in this case
+# the same volume that is used to inject the library). This keeps the
+# communication in memory and without the overhead of e.g. a network
+# socket.
+#
+#----
+#
+# This file is part of https://github.com/katalyticIT/liblogtap and is
+# licensed under GPL 3.0. See LICENSE file for details.
+#
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logtap-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logtap-demo
+  template:
+    metadata:
+      labels:
+        app: logtap-demo
+    spec:
+
+      # The shared volume where:
+      # - the init container writes the library to
+      # - the app container loads the library from
+      # - the sidecar container opens a socket in and listens to that
+      # - the library inside the app container writes a copy of stdout into the socket
+      volumes:
+      - name: shared-data
+        emptyDir: {}
+
+      initContainers:
+      # 1. The init container which injects the library via the shared volume
+      - name: install-tap
+        image: katalytic/liblogtap-demo:1.0
+        imagePullPolicy: IfNotPresent
+        command: ["cp", "-v", "/usr/local/lib/liblogtap.so", "/var/run/liblogtap.so"]
+
+        volumeMounts:
+        - name: shared-data
+          mountPath: /var/run
+
+      containers:
+      # 2. The main app, tick tock, a ticking clock
+      - name: main-app
+        image: katalytic/liblogtap-demo:1.0
+        imagePullPolicy: IfNotPresent
+        command: ["python3",   "/app/clock.py"]
+
+        env:
+        - name:  LD_PRELOAD
+          value: "/var/run/liblogtap.so"
+        - name:  LLT_TAP_INTO             # tap stdout or stderr
+          value: "1"                      # 1=stdout, 2=stderr, 3=both
+        - name:  LLT_TARGET_RECONNECT     # time(s) until reconnecting to socket in case
+          value: "10"                     # the connection is lost; default=30
+        - name:  LLT_TARGET               # can be file:/path/to/file or socket:/path/to/socket
+          value: "socket:/var/run/sidecar-logging.sock"
+        - name:  LLT_DEBUG_MODE           # enable debug logging
+          value: "true"                   # true or false (default)
+        - name:  LLT_SUPPRESS_STDOUT      # suppress original output on container
+          value: "false"                  # true or false (default)
+
+        volumeMounts:
+        - name: shared-data
+          mountPath: /var/run
+
+      # 3. The Sidecar using an image with a simple go-written log forwarder
+      - name: sidecar
+        image: katalytic/logfwd:0.1
+        imagePullPolicy: IfNotPresent
+
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name:  SOCKET_PATH                   # must be the same as above
+          value: "/var/run/sidecar-logging.sock"
+        - name:  SINK_STDOUT                   # Set to 'true' to simply write the intercepted log to
+          value: "false"                       # stdout; in most clusters, a fluentd daemonset will pick it up
+        - name:  SINK_FLUENT                   # Maybe faster because reducing disk i/o; you need to open
+          value: "fluentd-receiver-svc:24224"  # a tcp sink on the fluentd daemonset to route it there directly
+
+        volumeMounts:
+        - name: shared-data
+          mountPath: /var/run
+

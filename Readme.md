@@ -130,6 +130,11 @@ playgound like killercoda.com.
 
 For more information see the documentation inside the file deployment.yaml.
 
+## Extended kubernetes deployment with fluentd sink
+
+There's an extended demo deployment with a custom go binary to pick up
+the logs and send it to a fluentd TCP sink. Read more about it in the
+[fluent-demo/](fluent-demo/) folder.
 
 ## Controlling the library with environment variables.
 
