@@ -1,0 +1,102 @@
+---
+#
+#  fluentd-receiver.yaml - deploys a simple fluentd receiver,
+#                          listening on a tcp socket
+#
+# This file is part of a demo deployment in the repository
+# https://github.com/katalyticIT/liblogtap . The demo shows
+# how liblogtap intercepts the logfile of a legacy app while
+# a sidecar is receiving the intercepted log via UNIX socket.
+#
+# This fluent receiver is a dummy sink to show how the sidecar
+# is sending the intercepted log lines to a fluentd daemonset.
+#
+#====
+#
+# This file is part of https://github.com/katalyticIT/liblogtap and is
+# licensed under GPL 3.0. See LICENSE file for details.
+#
+
+# 1. ConfigMap with Fluentd configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-receiver-config
+  labels:
+    app: fluentd-receiver
+data:
+  fluent.conf: |
+    # Accept the TCP connection from the Go sidecar
+    <source>
+      @type tcp
+      port 24224
+      bind 0.0.0.0
+      tag logfwd.logs
+
+      # Parse NDJSON natively
+      <parse>
+        @type json
+        # Keep the timestamp from the Go binary as a normal data field
+        keep_time_key true
+      </parse>
+    </source>
+
+    # Output everything untouched as JSON to stdout
+    <match **>
+      @type stdout
+      <format>
+        @type json
+      </format>
+    </match>
+
+---
+# 2. Deployment for the Fluentd pod
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fluentd-receiver
+  labels:
+    app: fluentd-receiver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fluentd-receiver
+  template:
+    metadata:
+      labels:
+        app: fluentd-receiver
+    spec:
+      containers:
+      - name: fluentd
+        # Using the official Debian image (stable and includes core plugins)
+        image: fluent/fluentd:v1.16-debian-1
+        ports:
+        - containerPort: 24224
+          name: tcp-input
+        volumeMounts:
+        - name: config-volume
+          mountPath: /fluentd/etc/fluent.conf
+          subPath: fluent.conf
+      volumes:
+      - name: config-volume
+        configMap:
+          name: fluentd-receiver-config
+
+---
+# 3. Service to make the pod accessible within the cluster
+apiVersion: v1
+kind: Service
+metadata:
+  name: fluentd-receiver-svc
+  labels:
+    app: fluentd-receiver
+spec:
+  type: ClusterIP
+  selector:
+    app: fluentd-receiver
+  ports:
+  - name: tcp-fluent
+    protocol: TCP
+    port: 24224
+    targetPort: 24224
