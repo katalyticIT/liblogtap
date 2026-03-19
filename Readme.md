@@ -41,7 +41,7 @@ This is also a viable path. You'll find some examples how to do that
 in the [kubernetes documentation](https://kubernetes.io/docs/concepts/cluster-administration/logging/#streaming-sidecar-container).
 But in these scenarios you double the disk i/o (app writes and sidecar
 reads the log) and store large log files in the shared volume, means
-valuable disk space on the noce gets blocked.
+valuable disk space on the node gets blocked.
 
 With liblogtab, an environment variable may be set to **suppress** the
 writing to the original logfile, **reducing disk i/o**
@@ -170,7 +170,7 @@ environment variables:
 | LLT_TARGET_RECONNECT  | Number of seconds to wait until trying to reconnect to the socket, e.g. if the sidecar gets restart and the socket is temporarily unavailable. This is to ensure the main app won't get stuck waiting on the logging. Default=30.|
 | LLT_TARGET            | "file:/path/to/file" or "socket:/path/to/socket". Default=file:/tmp/liblogtap.log. |
 | LLT_TAP_FILE          | Custom file inside the container to tap into, e.g. something like /var/log/nginx.log. There's still containers around which don't follow the 12 factors. Default=none.|
-| LLT_SUPPRESS_TAP_FILE | Tap logfile and write to own file/socket, but don't write to intended log. Useful to reduce disk i/o and keep disk space footprint of the container small. Default=false. |
+| LLT_SUPPRESS_TAP_FILE | Tap logfile and write to own file/socket, but don't write to intended log (which the application won't notice). Useful to reduce disk i/o and keep disk space footprint of the container small. Default=false. |
 
 ## AI notice
 
