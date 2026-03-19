@@ -6,6 +6,9 @@ logs of containers and to analyze, transform or redirect the output.
 It's capable of intercepting stdout, stderr and up to one custom
 logfile.
 
+If you need to capture the log file of a containered legacy app while
+reducing disk i/o and saving disk space, liblogtap is your friend.
+
 ## Introduction
 
 The liblogtap library gets (pre)loaded using the environment variable
@@ -27,14 +30,30 @@ into a docker image, but there's still some around which don't, writing
 their logs into the containers filesystem (or an attached volume).
 Often it's a legacy application which nobody dares to touch or it's
 a third party tool of which the image may not or cannot be modified.
-
 To fix this, liblogtap is able to intercept the data of a given logfile
 and instead write it into a socket, where the sidecar can pick it up,
-forwarding it *into the place you want*. An environment variable may be
-set to suppress the writing to the original logfile, *reducing disk i/o*
-and *keeping the containers filesystem clean*.
+forwarding it *into the place you want*.
 
-Best thing is: *no modification of app, code or image is necessary!*
+*But why shouldn't I just use a sidecar which is tailing the log file
+on a shared volume?*
+
+This is also a viable path. You'll find some examples how to do that
+in the [kubernetes documentation](https://kubernetes.io/docs/concepts/cluster-administration/logging/#streaming-sidecar-container).
+But in these scenarios you double the disk i/o (app writes and sidecar
+reads the log) and store large log files in the shared volume, means
+valuable disk space on the noce gets blocked.
+
+With liblogtab, an environment variable may be set to **suppress** the
+writing to the original logfile, **reducing disk i/o**
+and **keeping the containers filesystem clean**.
+
+In the folder [fluent-demo](fluent-demo/) you'll find an example of how to
+setup a sidecar that picks up the logs of a legacy app and sends it
+directly via TCP to a fluentd daemonset within the cluster, which means, should
+the fluentd daemonset forward the logs directly to a central sink such as
+ELK, not one byte of the logs is ever written to the cluster's hard drives.
+
+Best thing is: **no modification of app, code or image is necessary!**
 
 Another use case for this library could be the situation where your
 company *is* gathering all logs centrally using a common produkt like
