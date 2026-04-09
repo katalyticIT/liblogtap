@@ -69,6 +69,16 @@ In summary, this library puts you back in control, allowing you to decide
 *how and where* you want to use the logs, regardless of whether it's a
 self-written application or a container with third-party software.
 
+## Cases in which it won't work
+
+The trick liblogtap relies on is LD_PRELOAD which places it between
+app and kernel where it can intercept glibc system calls. That means
+there are some cases in which the trick won't work, e.g.:
+
+* if the binary is linked statically, like often seen with go binaries,
+* if there's no glibc, like with alpine images which uses musl instead.
+
+
 ## Building library and docker image
 
 You may use the Makefile and just run _make clean && make_ to create the library, or compile
