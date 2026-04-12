@@ -78,6 +78,12 @@ there are some cases in which the trick won't work, e.g.:
 * if the binary is linked statically, like often seen with go binaries,
 * if there's no glibc, like with alpine images which uses musl instead.
 
+## Notice on Python
+
+Python tends to write buffered which means output not always appears
+immedeatly. To avoid this and subsequent side effects, the library
+automatically injects an environment variable PYTHONUNBUFFERED=1 into
+the container to make Python write directly.
 
 ## Building library and docker image
 
