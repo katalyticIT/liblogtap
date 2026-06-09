@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/local/bin/python3
 
 ##
 ## demo application
@@ -30,5 +30,6 @@ with open(logfile, 'w') as f:
     datestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H.%M.%S")	# add date & time
 
     f.write( datestamp + " " + content + "\n" )	# put it all together
+    f.flush()					# don't buffer but write to disk
     time.sleep(naptime)				# have a little nap
 
