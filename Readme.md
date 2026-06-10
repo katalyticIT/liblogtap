@@ -188,6 +188,26 @@ environment variables:
 | LLT_TAP_FILE          | Custom file inside the container to tap into, e.g. something like /var/log/nginx.log. There's still containers around which don't follow the 12 factors. Default=none.|
 | LLT_SUPPRESS_TAP_FILE | Tap logfile and write to own file/socket, but don't write to intended log (which the application won't notice). Useful to reduce disk i/o and keep disk space footprint of the container small. Default=false. |
 
+## Example configuration
+
+Here's an example for a configuration of a liblogtap deployment in which the library reads
+from the log of a legacy app which writes to a file in the /tmp folder. Output to the original
+file gets suppressed, thus keeping the filesystem clean, and the log lines are written to
+the stdout channel of the container (/proc/1/fd/1) instead.
+
+```yaml
+         env:
+           - name: LD_PRELOAD                # pre-load liblogtap from
+             value: /lib_volume/liblogtap.so # the shared volume
+           - name: LLT_TAP_FILE              # tap into the log of a legacy app
+             value: /tmp/legacyApp.log
+           - name: LLT_SUPPRESS_TAP_FILE     # suppress writing to log file
+             value: true
+           - name: LLT_TARGET                # write instead to the
+             value: file:/proc/1/fd/1        # stdout of container
+```
+
+
 ## AI notice
 
 Parts of the library source code and the log_sink python script were created using AI (Google Gemini).
