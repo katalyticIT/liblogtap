@@ -5,8 +5,15 @@
 # licensed under GPL 3.0. See LICENSE file for details.
 #
 
+#---- set images
+ARG BUILDER_IMG=docker.io/gcc
+ARG BUILDER_TAG=latest
+ARG RUNTIME_IMG=docker.io/python
+ARG RUNTIME_TAG=3.16-rc-alpine3.24
+
+
 # --- Stage 1: Compiling the C library ---
-FROM gcc:latest AS builder
+FROM $BUILDER_IMG:$BUILDER_TAG  AS builder
 
 WORKDIR /build
 COPY    src/liblogtap.c  .
@@ -14,7 +21,7 @@ RUN     gcc -Wall -Wextra -fPIC -o liblogtap.so liblogtap.c -shared -ldl -lpthre
 
 
 # --- Stage 2: Building the final sidecar image ---
-FROM python:3.11-slim
+FROM $RUNTIME_IMG:$RUNTIME_TAG
 
 WORKDIR /app
 
