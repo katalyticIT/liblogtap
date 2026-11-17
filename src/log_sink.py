@@ -4,6 +4,7 @@
 #
 # reads over a socket in a shared volume the log output from the main
 # container, enriches it and writes it to stdout as single line JSON.
+# (The socket's path has to be defined in env var SINK_SOCKET_PATH.)
 #
 # A next step would be e.g. to add a fluentd client or a similar tool
 # for central aggregation of logs.
